@@ -234,31 +234,46 @@ function applyLoadedData(data){
   idCounter = maxNum + 1;
 }
 
-function loadState(){
-  // Load local copy first — instant, works offline, gets you on screen immediately.
+function loadLocalOnly(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){
-      applyLoadedData(JSON.parse(raw));
-    }
+    if(raw){ applyLoadedData(JSON.parse(raw)); return true; }
   }catch(e){ /* ignore */ }
+  return false;
+}
 
-  // Then check the cloud in the background — if it has data (e.g. this is a fresh
-  // device/browser with nothing local yet, or another device saved more recently),
-  // pull it in and re-render.
+async function bootstrapState(){
+  const hasLocal = loadLocalOnly();
+  if(hasLocal){
+    // Instant paint from local copy so the UI isn't blank while we check the cloud.
+    document.getElementById('projectNameInput').value = (getActiveShoot() || {}).name || 'Shoot Tracker Export';
+    renderAll();
+  }
+
   if(cloudReady){
-    db.collection('shootTracker').doc('main').get().then(doc=>{
+    try{
+      const doc = await db.collection('shootTracker').doc('main').get();
       if(doc.exists){
         applyLoadedData(doc.data());
         document.getElementById('projectNameInput').value = (getActiveShoot() || {}).name || 'Shoot Tracker Export';
         renderAll();
+        renderFolderChips();
+        return; // cloud data loaded — never fall through to creating a default shoot
       }
-    }).catch(err=>{
-      console.warn('Cloud load failed (offline?) — using local copy.', err);
-    });
+    }catch(err){
+      console.warn('Cloud load failed (offline?) — using local copy if any.', err);
+    }
   }
 
-  return shoots.length > 0;
+  // Only reaches here if there was nothing local AND nothing in the cloud
+  // (or the cloud is unreachable). Safe to create a fresh default shoot now —
+  // this used to run before the cloud check finished, which could overwrite
+  // real cloud data with an empty shoot. Fixed.
+  if(shoots.length === 0){
+    createShoot('Shoot 1', 'music');
+  } else {
+    renderFolderChips();
+  }
 }
 
 // ---------- Shoot management ----------
@@ -836,13 +851,7 @@ function renderStats(){
 
 // ---------- Bootstrap ----------
 initFirebase();
-if(loadState()){
-  document.getElementById('projectNameInput').value = (getActiveShoot() || {}).name || 'Shoot Tracker Export';
-  renderAll();
-} else {
-  createShoot('Shoot 1', 'music');
-}
-renderFolderChips();
+bootstrapState();
 </script>
 </body>
 </html>
