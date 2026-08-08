@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shoot Tracker</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --border:#2a2f3a;
+    --text:#e8eaf0; --sub:#8a90a2; --accent:#ff5c39; --accent2:#3ea6ff;
+    --good:#3ecf7a; --warn:#ffb648; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); padding:20px 16px 80px;
+  }
+  h1{font-size:20px; margin:0 0 2px; letter-spacing:.3px;}
+  .sub{color:var(--sub); font-size:13px; margin-bottom:18px;}
+  .topbar{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px; margin-bottom:16px;
+  }
+  .stats{display:flex; gap:18px; flex-wrap:wrap; margin-left:auto; font-size:12px; color:var(--sub);}
+  .stats b{color:var(--text); font-size:15px; display:block;}
+  button{
+    font:inherit; cursor:pointer; border:none; border-radius:10px;
+    padding:11px 16px; font-weight:600; font-size:14px;
+    transition:transform .05s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  .btn-accent{background:var(--accent); color:#fff;}
+  .btn-blue{background:var(--accent2); color:#04141f;}
+  .btn-ghost{background:var(--panel2); color:var(--text); border:1px solid var(--border);}
+  .btn-good{background:var(--good); color:#04241a;}
+  .btn-sm{padding:7px 11px; font-size:12.5px; border-radius:8px;}
+  .btn-danger{background:#2a1518; color:#ff8f8f; border:1px solid #472025;}
+  input[type=file]{display:none;}
+  h3.block-title{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--sub);}
+  .shoot-tab{background:var(--panel2); color:var(--sub); border:1px solid var(--border); padding:8px 14px; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer;}
+  .shoot-tab.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .song{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; margin-bottom:16px;
+  }
+  .song-head{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .song-name{
+    background:transparent; border:none; color:var(--text); font-size:18px; font-weight:700;
+    border-bottom:1px dashed transparent; padding:2px 0; min-width:120px;
+  }
+  .song-name:focus{outline:none; border-bottom:1px dashed var(--accent2);}
+  .badge{font-size:11px; padding:4px 9px; border-radius:20px; background:var(--panel2); color:var(--sub); border:1px solid var(--border);}
+  .song-body{margin-top:14px; display:grid; grid-template-columns:1fr; gap:14px;}
+  @media(min-width:900px){ .song-body{grid-template-columns: 320px 1fr;} }
+  .block{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:12px;}
+  .block h3{margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--sub);}
+  audio{width:100%; margin-top:8px;}
+  .clicker-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;}
+  select, .bpm-input{
+    background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px;
+    padding:8px 10px; font-size:13px;
+  }
+  .bpm-input{width:70px;}
+  .flash{
+    font-size:34px; font-weight:800; text-align:center; padding:10px 0; color:var(--accent);
+    min-height:44px;
+  }
+  .lyrics-toggle{display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px;}
+  .shorts-list{display:flex; flex-direction:column; gap:8px; max-height:420px; overflow-y:auto; padding-right:4px;}
+  .short-row{
+    display:grid; grid-template-columns: 1fr auto auto auto auto; gap:8px; align-items:center;
+    background:var(--bg); border:1px solid var(--border); border-radius:9px; padding:9px 10px;
+    font-size:13.5px;
+  }
+  .short-label{background:transparent; border:none; color:var(--text); font-size:13.5px; font-weight:600; width:100%;}
+  .short-label:focus{outline:none;}
+  .chk{display:flex; flex-direction:column; align-items:center; gap:2px; font-size:9.5px; color:var(--sub); text-transform:uppercase; letter-spacing:.4px;}
+  .chk input{width:19px; height:19px; accent-color:var(--accent);}
+  .add-short-row{display:flex; gap:8px; margin-top:10px;}
+  .progress-wrap{margin-top:12px; height:6px; background:var(--bg); border-radius:4px; overflow:hidden; border:1px solid var(--border);}
+  .progress-bar{height:100%; background:linear-gradient(90deg,var(--accent2),var(--good)); width:0%; transition:width .2s ease;}
+  .foot-row{display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11.5px; color:var(--sub);}
+  .empty{text-align:center; color:var(--sub); padding:40px 10px; font-size:14px;}
+  .col-actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<h1>🎬 Shoot Tracker</h1>
+<div class="sub">Multiple shoots, music or client — click-in and shoot → build lyrics → edit → export → deliver</div>
+
+<div class="topbar" style="flex-direction:column; align-items:flex-start;">
+  <h3 class="block-title">Shoots</h3>
+  <div id="shootTabs" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
+  <div id="newShootForm" style="display:none;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
+    <input type="text" id="newShootName" class="bpm-input" style="width:200px;" placeholder="Shoot name" onkeydown="if(event.key==='Enter')submitNewShoot()">
+    <select id="newShootType">
+      <option value="music">Music shoot (songs + shorts)</option>
+      <option value="client">Client package (no music)</option>
+    </select>
+    <button class="btn-accent btn-sm" onclick="submitNewShoot()">Create</button>
+    <button class="btn-ghost btn-sm" onclick="toggleNewShootForm()">Cancel</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <span id="addSongGroup" style="display:flex;gap:8px;align-items:center;">
+    <button class="btn-accent" onclick="document.getElementById('songUpload').click()">+ Add Song(s)</button>
+    <input type="file" id="songUpload" accept="audio/mp3,audio/mpeg" multiple onchange="handleSongUpload(event)">
+  </span>
+  <span id="addPackageGroup" style="display:none;gap:8px;align-items:center;">
+    <input type="text" id="newPackageName" class="bpm-input" style="width:190px;" placeholder="Package / scene name" onkeydown="if(event.key==='Enter')addPackage()">
+    <button class="btn-accent" onclick="addPackage()">+ Add Package</button>
+  </span>
+
+  <input type="text" id="projectNameInput" class="bpm-input" style="width:180px;" placeholder="Shoot Title" value="Shoot Tracker Export">
+  <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sub);">
+    <input type="checkbox" id="includeDateStamp" checked style="width:16px;height:16px;accent-color:var(--accent);">
+    Add a dated folder inside the project
+  </label>
+  <button class="btn-blue" onclick="exportPremiereXML()">⇒ Export Project (XML + Script + Folders)</button>
+  <button class="btn-ghost" onclick="exportData()">⬇ Save Progress (.json)</button>
+  <button class="btn-ghost" onclick="document.getElementById('loadFile').click()">⬆ Load Progress</button>
+  <input type="file" id="loadFile" accept="application/json" onchange="importData(event)">
+  <div class="stats" id="statsBar"></div>
+</div>
+
+<div class="topbar" style="flex-direction:column; align-items:flex-start;">
+  <h3 class="block-title">Folder template — applied inside every song/package folder on export</h3>
+  <div id="folderChips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
+  <div style="display:flex;gap:8px;">
+    <input type="text" id="newFolderInput" class="bpm-input" style="width:200px;" placeholder="New folder name" onkeydown="if(event.key==='Enter')addFolderTemplateItem()">
+    <button class="btn-accent btn-sm" onclick="addFolderTemplateItem()">+ Add folder</button>
+  </div>
+</div>
+
+<div id="songsContainer"></div>
+
+<script>
+let shoots = [];
+let activeShootId = null;
+let idCounter = 1;
+let audioCtx = null;
+let folderTemplate = ['Raw Footage', 'Lyrics', 'Shorts', 'Exports', 'Delivered'];
+let showNewShootForm = false;
+
+// ---------- Utility ----------
+function uid(){ return 'id' + (idCounter++); }
+function stripExt(name){ return name.replace(/\.[^/.]+$/, ""); }
+function getActiveShoot(){ return shoots.find(s => s.id === activeShootId); }
+function findSong(songId){
+  const shoot = getActiveShoot();
+  return shoot ? shoot.songs.find(s => s.id === songId) : null;
+}
+function escapeHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ---------- Shoot management ----------
+function createShoot(name, type){
+  const shoot = { id: uid(), name: name || (type==='music' ? 'New Music Shoot' : 'New Client Shoot'), type: type, songs: [] };
+  shoots.push(shoot);
+  activeShootId = shoot.id;
+  showNewShootForm = false;
+  document.getElementById('projectNameInput').value = shoot.name;
+  renderAll();
+}
+
+function switchShoot(id){
+  activeShootId = id;
+  const shoot = getActiveShoot();
+  document.getElementById('projectNameInput').value = shoot.name;
+  renderAll();
+}
+
+function toggleNewShootForm(){
+  showNewShootForm = !showNewShootForm;
+  renderShootTabs();
+}
+
+function submitNewShoot(){
+  const nameInput = document.getElementById('newShootName');
+  const typeSelect = document.getElementById('newShootType');
+  const name = nameInput.value.trim() || 'Untitled Shoot';
+  const type = typeSelect.value;
+  nameInput.value = '';
+  createShoot(name, type);
+}
+
+function deleteActiveShoot(){
+  if(!confirm("Delete this entire shoot and everything in it?")) return;
+  const id = activeShootId;
+  shoots = shoots.filter(s => s.id !== id);
+  if(shoots.length === 0){
+    createShoot('Shoot 1', 'music');
+    return;
+  }
+  activeShootId = shoots[0].id;
+  document.getElementById('projectNameInput').value = getActiveShoot().name;
+  renderAll();
+}
+
+// ---------- Folder template ----------
+function renderFolderChips(){
+  const el = document.getElementById('folderChips');
+  if(!el) return;
+  el.innerHTML = folderTemplate.map((f, i) => `
+    <span class="badge" style="display:inline-flex;align-items:center;gap:7px;padding:6px 10px;">
+      ${escapeHtml(f)}${f.toLowerCase()==='shorts' ? '<span style="color:var(--sub);font-size:10px;">(per-short subfolders)</span>' : ''}
+      <button onclick="removeFolderTemplateItem(${i})" style="background:none;border:none;color:#ff8f8f;cursor:pointer;font-size:13px;padding:0;line-height:1;">✕</button>
+    </span>`).join('');
+}
+
+function addFolderTemplateItem(){
+  const input = document.getElementById('newFolderInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(folderTemplate.some(f => f.toLowerCase() === val.toLowerCase())){ input.value=''; return; }
+  folderTemplate.push(val);
+  input.value = '';
+  renderFolderChips();
+}
+
+function removeFolderTemplateItem(index){
+  folderTemplate.splice(index, 1);
+  renderFolderChips();
+}
+
+// ---------- Song / package management ----------
+function handleSongUpload(e){
+  const shoot = getActiveShoot();
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    const url = URL.createObjectURL(f);
+    shoot.songs.push({
+      id: uid(),
+      name: stripExt(f.name),
+      fileName: f.name,
+      audioURL: url,
+      lyricsBuilt: false,
+      delivered: false,
+      shorts: []
+    });
+  });
+  e.target.value = "";
+  renderSongs();
+}
+
+function addPackage(){
+  const input = document.getElementById('newPackageName');
+  const val = input.value.trim();
+  if(!val) return;
+  const shoot = getActiveShoot();
+  shoot.songs.push({
+    id: uid(), name: val, fileName: '', audioURL: '',
+    lyricsBuilt: false, delivered: false, shorts: []
+  });
+  input.value = '';
+  renderSongs();
+}
+
+function addShort(songId){
+  const song = findSong(songId);
+  const n = song.shorts.length + 1;
+  song.shorts.push({ id: uid(), label: 'Short ' + n, shot:false, edited:false, exported:false });
+  renderSongs();
+}
+
+function deleteShort(songId, shortId){
+  const song = findSong(songId);
+  song.shorts = song.shorts.filter(sh => sh.id !== shortId);
+  renderSongs();
+}
+
+function deleteSong(songId){
+  const shoot = getActiveShoot();
+  if(!confirm("Remove this from the tracker along with all its shorts?")) return;
+  shoot.songs = shoot.songs.filter(s => s.id !== songId);
+  renderSongs();
+}
+
+function updateSongName(songId, val){
+  const song = findSong(songId);
+  song.name = val;
+}
+
+function updateShortLabel(songId, shortId, val){
+  const song = findSong(songId);
+  const sh = song.shorts.find(x => x.id === shortId);
+  sh.label = val;
+}
+
+function toggleField(songId, field){
+  const song = findSong(songId);
+  song[field] = !song[field];
+  renderSongs();
+}
+
+function toggleShortField(songId, shortId, field){
+  const song = findSong(songId);
+  const sh = song.shorts.find(x => x.id === shortId);
+  sh[field] = !sh[field];
+  renderSongs();
+}
+
+// ---------- Clicker / Metronome ----------
+function beep(ctx, time, freq){
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.frequency.value = freq;
+  osc.type = "square";
+  gain.gain.setValueAtTime(0.28, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(time); osc.stop(time + 0.09);
+}
+
+function playClickerThenSong(songId){
+  const clickCount = parseInt(document.getElementById('clicks_' + songId).value, 10);
+  const bpm = parseInt(document.getElementById('bpm_' + songId).value, 10) || 100;
+  const interval = 60 / bpm;
+  const flashEl = document.getElementById('flash_' + songId);
+  const audioEl = document.getElementById('audio_' + songId);
+
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+
+  const startTime = audioCtx.currentTime + 0.15;
+  for(let i=0;i<clickCount;i++){
+    const t = startTime + i*interval;
+    const isAccent = (i === 0);
+    beep(audioCtx, t, isAccent ? 1100 : 800);
+    setTimeout(()=>{ flashEl.textContent = clickCount - i; }, (t - audioCtx.currentTime)*1000);
+  }
+  const songStart = startTime + clickCount*interval;
+  setTimeout(()=>{
+    flashEl.textContent = "▶ GO";
+    audioEl.currentTime = 0;
+    audioEl.play();
+    setTimeout(()=>{ flashEl.textContent = ""; }, 1200);
+  }, (songStart - audioCtx.currentTime)*1000);
+}
+
+// ---------- Premiere Pro sequence export (FCP7 XML interchange) ----------
+function escapeXml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function sequenceXML(name){
+  return `      <sequence>
+        <name>${escapeXml(name)}</name>
+        <duration>0</duration>
+        <rate>
+          <timebase>24</timebase>
+          <ntsc>TRUE</ntsc>
+        </rate>
+        <media>
+          <video>
+            <format>
+              <samplecharacteristics>
+                <width>1080</width>
+                <height>1920</height>
+                <pixelaspectratio>square</pixelaspectratio>
+                <rate>
+                  <timebase>24</timebase>
+                  <ntsc>TRUE</ntsc>
+                </rate>
+              </samplecharacteristics>
+            </format>
+            <track></track>
+          </video>
+          <audio>
+            <track></track>
+          </audio>
+        </media>
+      </sequence>
+`;
+}
+
+function generatePremiereXML(){
+  const shoot = getActiveShoot();
+  const projectName = (document.getElementById('projectNameInput').value || 'Shoot Tracker Export').trim();
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="5">\n<project>\n  <name>${escapeXml(projectName)}</name>\n  <children>\n`;
+  shoot.songs.forEach(song => {
+    xml += `    <bin>\n      <name>${escapeXml(song.name)}</name>\n      <children>\n`;
+    xml += sequenceXML(song.name + ' - RAW FOOTAGE');
+    if(song.shorts.length === 0){
+      xml += sequenceXML(song.name + ' - Short 1');
+    } else {
+      song.shorts.forEach(sh => {
+        xml += sequenceXML(song.name + ' - ' + sh.label);
+      });
+    }
+    xml += `      </children>\n    </bin>\n`;
+  });
+  xml += `  </children>\n</project>\n</xmeml>`;
+  return xml;
+}
+
+function generateOpenAllSequencesJSX(){
+  return `// Shoot Tracker — Open All Sequences
+// Run in Premiere Pro AFTER importing the matching XML:
+// File > Scripts > Run Script File...
+// Opens every sequence in the project as a timeline tab.
+
+(function(){
+    if (!app.project) {
+        alert("No project open.");
+        return;
+    }
+
+    function openSequencesInBin(item){
+        for (var i = 0; i < item.children.numItems; i++){
+            var child = item.children[i];
+            if (child.type === ProjectItemType.BIN){
+                openSequencesInBin(child);
+            } else if (child.type === ProjectItemType.SEQUENCE){
+                try{
+                    var seq = child.getSequence ? child.getSequence() : null;
+                    if (seq){
+                        app.project.openSequence({sequenceID: seq.sequenceID});
+                    }
+                } catch(e){
+                    // Skip items that fail to open
+                }
+            }
+        }
+    }
+
+    openSequencesInBin(app.project.rootItem);
+    alert("Done — all sequences should now be open as timeline tabs.");
+})();
+`;
+}
+
+function sanitizeForPath(str){
+  return String(str).replace(/[\\\/:\*\?"<>\|]/g, '').trim() || 'Untitled';
+}
+
+function getDateStamp(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function generateFolderScript(){
+  const shoot = getActiveShoot();
+  const projectName = (document.getElementById('projectNameInput').value || 'Shoot Tracker Export').trim();
+  const includeDate = document.getElementById('includeDateStamp').checked;
+  const safeProject = sanitizeForPath(projectName);
+  const folderName = includeDate ? `${getDateStamp()}_${safeProject}` : safeProject;
+
+  let bat = `@echo off\r\nsetlocal enabledelayedexpansion\r\n\r\n`;
+  bat += `echo A folder picker window will open - choose where to create the project.\r\n`;
+  bat += `powershell -sta -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select destination for project folder: ${folderName}'; if ($f.ShowDialog() -eq 'OK') { Write-Output $f.SelectedPath }" > "%TEMP%\\shoot_tracker_path.txt"\r\n`;
+  bat += `set /p DEST=<"%TEMP%\\shoot_tracker_path.txt"\r\n`;
+  bat += `del "%TEMP%\\shoot_tracker_path.txt" 2>nul\r\n\r\n`;
+  bat += `if "%DEST%"=="" (\r\n  echo No folder selected - nothing was created.\r\n  pause\r\n  exit /b\r\n)\r\n\r\n`;
+  bat += `set "BASE=%DEST%\\${folderName}"\r\n`;
+  bat += `mkdir "%BASE%" 2>nul\r\n\r\n`;
+
+  shoot.songs.forEach(song => {
+    const safeSong = sanitizeForPath(song.name);
+    bat += `echo Creating folders for ${safeSong}...\r\n`;
+
+    folderTemplate.forEach(folder => {
+      if(folder.toLowerCase() === 'shorts'){
+        if(song.shorts.length === 0){
+          bat += `mkdir "%BASE%\\${safeSong}\\Shorts\\Short 1" 2>nul\r\n`;
+        } else {
+          song.shorts.forEach(sh => {
+            const safeShort = sanitizeForPath(sh.label);
+            bat += `mkdir "%BASE%\\${safeSong}\\Shorts\\${safeShort}" 2>nul\r\n`;
+          });
+        }
+      } else {
+        const safeFolder = sanitizeForPath(folder);
+        bat += `mkdir "%BASE%\\${safeSong}\\${safeFolder}" 2>nul\r\n`;
+      }
+    });
+    bat += `\r\n`;
+  });
+
+  bat += `echo.\r\necho Done! Project folders created in: %BASE%\r\npause\r\n`;
+  return bat;
+}
+
+function exportPremiereXML(){
+  const shoot = getActiveShoot();
+  if(!shoot || shoot.songs.length === 0){ alert("Add at least one song or package (and some shorts) before exporting."); return; }
+  const projectName = (document.getElementById('projectNameInput').value || 'Shoot Tracker Export').trim();
+  const safeName = projectName.replace(/[^\w\-]+/g,'_');
+
+  const xml = generatePremiereXML();
+  const xmlBlob = new Blob([xml], {type:'application/xml'});
+  const xmlLink = document.createElement('a');
+  xmlLink.href = URL.createObjectURL(xmlBlob);
+  xmlLink.download = safeName + '_sequences.xml';
+  xmlLink.click();
+
+  setTimeout(()=>{
+    const jsx = generateOpenAllSequencesJSX();
+    const jsxBlob = new Blob([jsx], {type:'text/plain'});
+    const jsxLink = document.createElement('a');
+    jsxLink.href = URL.createObjectURL(jsxBlob);
+    jsxLink.download = safeName + '_open_all_sequences.jsx';
+    jsxLink.click();
+  }, 400);
+
+  setTimeout(()=>{
+    const bat = generateFolderScript();
+    const batBlob = new Blob([bat], {type:'text/plain'});
+    const batLink = document.createElement('a');
+    batLink.href = URL.createObjectURL(batBlob);
+    batLink.download = safeName + '_create_folders.bat';
+    batLink.click();
+  }, 800);
+}
+
+// ---------- Save / Load progress (whole system: all shoots) ----------
+function exportData(){
+  const data = {
+    folderTemplate: folderTemplate,
+    shoots: shoots.map(s => ({
+      name: s.name, type: s.type,
+      songs: s.songs.map(so => ({
+        name: so.name, fileName: so.fileName, lyricsBuilt: so.lyricsBuilt, delivered: so.delivered,
+        shorts: so.shorts.map(sh => ({ label: sh.label, shot: sh.shot, edited: sh.edited, exported: sh.exported }))
+      }))
+    }))
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'shoot_tracker_progress.json';
+  a.click();
+}
+
+function importData(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const data = JSON.parse(evt.target.result);
+
+      if(Array.isArray(data)){
+        // legacy save format: a flat array of songs from a single music shoot
+        const shoot = {
+          id: uid(), name: 'Imported Shoot', type: 'music',
+          songs: data.map(s => ({
+            id: uid(), name: s.name, fileName: s.fileName || '', audioURL: '',
+            lyricsBuilt: !!s.lyricsBuilt, delivered: !!s.delivered,
+            shorts: (s.shorts||[]).map(sh => ({ id: uid(), label: sh.label, shot: !!sh.shot, edited: !!sh.edited, exported: !!sh.exported }))
+          }))
+        };
+        shoots.push(shoot);
+        activeShootId = shoot.id;
+      } else if(data.shoots){
+        shoots = data.shoots.map(s => ({
+          id: uid(), name: s.name, type: s.type || 'music',
+          songs: (s.songs||[]).map(so => ({
+            id: uid(), name: so.name, fileName: so.fileName || '', audioURL: '',
+            lyricsBuilt: !!so.lyricsBuilt, delivered: !!so.delivered,
+            shorts: (so.shorts||[]).map(sh => ({ id: uid(), label: sh.label, shot: !!sh.shot, edited: !!sh.edited, exported: !!sh.exported }))
+          }))
+        }));
+        if(data.folderTemplate && Array.isArray(data.folderTemplate)) folderTemplate = data.folderTemplate;
+        activeShootId = shoots.length ? shoots[0].id : null;
+      }
+
+      if(!activeShootId){ createShoot('Shoot 1', 'music'); return; }
+      document.getElementById('projectNameInput').value = getActiveShoot().name;
+      renderAll();
+      alert("Progress loaded. Note: audio files aren't saved in the .json — re-attach mp3s by re-adding songs with matching names if you need playback.");
+    }catch(err){ alert("Couldn't read that file."); }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+}
+
+// ---------- Render ----------
+function renderAll(){
+  renderShootTabs();
+  renderTopbarGroups();
+  renderFolderChips();
+  renderSongs();
+}
+
+function renderShootTabs(){
+  const el = document.getElementById('shootTabs');
+  el.innerHTML = shoots.map(s => `
+    <button class="shoot-tab ${s.id===activeShootId?'active':''}" onclick="switchShoot('${s.id}')">
+      ${escapeHtml(s.name)} ${s.type==='music' ? '🎵' : '📁'}
+    </button>
+  `).join('') +
+  `<button class="btn-ghost btn-sm" onclick="toggleNewShootForm()">+ New Shoot</button>` +
+  (shoots.length ? `<button class="btn-danger btn-sm" onclick="deleteActiveShoot()">Delete active shoot</button>` : '');
+
+  const formEl = document.getElementById('newShootForm');
+  formEl.style.display = showNewShootForm ? 'flex' : 'none';
+}
+
+function renderTopbarGroups(){
+  const shoot = getActiveShoot();
+  if(!shoot) return;
+  const isMusic = shoot.type === 'music';
+  document.getElementById('addSongGroup').style.display = isMusic ? 'flex' : 'none';
+  document.getElementById('addPackageGroup').style.display = isMusic ? 'none' : 'flex';
+}
+
+function renderSongs(){
+  const shoot = getActiveShoot();
+  const container = document.getElementById('songsContainer');
+  if(!shoot || shoot.songs.length === 0){
+    const msg = shoot && shoot.type === 'client'
+      ? 'No packages yet — add one above.'
+      : 'No songs yet — tap + Add Song(s) to upload mp3s for this shoot.';
+    container.innerHTML = `<div class="empty">${msg}</div>`;
+  } else {
+    container.innerHTML = shoot.songs.map(s => songTemplate(s, shoot.type)).join('');
+  }
+  renderStats();
+}
+
+function songTemplate(song, shootType){
+  const isMusic = shootType === 'music';
+  const totalShorts = song.shorts.length;
+  const shotCount = song.shorts.filter(s=>s.shot).length;
+  const editedCount = song.shorts.filter(s=>s.edited).length;
+  const expCount = song.shorts.filter(s=>s.exported).length;
+  const pct = totalShorts ? Math.round((editedCount/totalShorts)*100) : 0;
+
+  return `
+  <div class="song">
+    <div class="song-head">
+      <input class="song-name" value="${escapeHtml(song.name)}" oninput="updateSongName('${song.id}', this.value)">
+      <span class="badge">${totalShorts} short${totalShorts!==1?'s':''}</span>
+      <span class="badge">${shotCount}/${totalShorts} shot</span>
+      <span class="badge">${editedCount}/${totalShorts} edited</span>
+      ${song.delivered ? '<span class="badge" style="color:var(--good);border-color:var(--good);">delivered</span>' : ''}
+      <button class="btn-danger btn-sm" style="margin-left:auto" onclick="deleteSong('${song.id}')">Remove</button>
+    </div>
+
+    <div class="song-body">
+      <div>
+        ${isMusic ? `
+        <div class="block">
+          <h3>Playback + Click-in</h3>
+          ${song.audioURL ? `<audio id="audio_${song.id}" controls src="${song.audioURL}"></audio>` : `<div style="color:var(--sub);font-size:12.5px;">No audio attached (loaded from saved progress)</div>`}
+          <div class="clicker-row">
+            <select id="clicks_${song.id}">
+              <option value="3">3 clicks</option>
+              <option value="6" selected>6 clicks</option>
+              <option value="9">9 clicks</option>
+            </select>
+            <input class="bpm-input" id="bpm_${song.id}" type="number" value="100" min="40" max="220"> bpm
+            <button class="btn-blue btn-sm" ${song.audioURL ? '' : 'disabled'} onclick="playClickerThenSong('${song.id}')">▶ Click-in + Play</button>
+          </div>
+          <div class="flash" id="flash_${song.id}"></div>
+        </div>` : ''}
+
+        <div class="block" style="margin-top:${isMusic ? '12px' : '0'};">
+          ${isMusic ? `
+          <div class="lyrics-toggle">
+            <input type="checkbox" ${song.lyricsBuilt?'checked':''} onchange="toggleField('${song.id}','lyricsBuilt')" style="width:19px;height:19px;accent-color:var(--accent);">
+            Lyrics built for edit
+          </div>` : ''}
+          <div class="lyrics-toggle" style="${isMusic ? '' : 'margin-top:0;'}">
+            <input type="checkbox" ${song.delivered?'checked':''} onchange="toggleField('${song.id}','delivered')" style="width:19px;height:19px;accent-color:var(--good);">
+            Fully delivered
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <h3>Shorts (takes shot for this ${isMusic ? 'song' : 'package'})</h3>
+          <div class="shorts-list">
+            ${song.shorts.map(sh => shortRowTemplate(song.id, sh)).join('') || '<div style="color:var(--sub);font-size:13px;">No shorts added yet.</div>'}
+          </div>
+          <div class="add-short-row">
+            <button class="btn-accent btn-sm" onclick="addShort('${song.id}')">+ Add Short</button>
+          </div>
+          <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+          <div class="foot-row">
+            <span>${expCount}/${totalShorts} exported</span>
+            <span>${pct}% edited</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function shortRowTemplate(songId, sh){
+  return `
+  <div class="short-row">
+    <input class="short-label" value="${escapeHtml(sh.label)}" oninput="updateShortLabel('${songId}','${sh.id}', this.value)">
+    <label class="chk">Shot<input type="checkbox" ${sh.shot?'checked':''} onchange="toggleShortField('${songId}','${sh.id}','shot')"></label>
+    <label class="chk">Edit<input type="checkbox" ${sh.edited?'checked':''} onchange="toggleShortField('${songId}','${sh.id}','edited')"></label>
+    <label class="chk">Exp<input type="checkbox" ${sh.exported?'checked':''} onchange="toggleShortField('${songId}','${sh.id}','exported')"></label>
+    <button class="btn-danger btn-sm" onclick="deleteShort('${songId}','${sh.id}')">✕</button>
+  </div>`;
+}
+
+function renderStats(){
+  const shoot = getActiveShoot();
+  const el = document.getElementById('statsBar');
+  if(!shoot){ el.innerHTML = ''; return; }
+  const totalSongs = shoot.songs.length;
+  const totalShorts = shoot.songs.reduce((a,s)=>a+s.shorts.length,0);
+  const shot = shoot.songs.reduce((a,s)=>a+s.shorts.filter(x=>x.shot).length,0);
+  const edited = shoot.songs.reduce((a,s)=>a+s.shorts.filter(x=>x.edited).length,0);
+  const delivered = shoot.songs.filter(s=>s.delivered).length;
+  const label = shoot.type === 'client' ? 'packages' : 'songs';
+  el.innerHTML = `
+    <div><b>${totalSongs}</b>${label}</div>
+    <div><b>${totalShorts}</b>shorts</div>
+    <div><b>${shot}/${totalShorts}</b>shot</div>
+    <div><b>${edited}/${totalShorts}</b>edited</div>
+    <div><b>${delivered}/${totalSongs}</b>delivered</div>
+  `;
+}
+
+// ---------- Bootstrap ----------
+if(shoots.length === 0){
+  createShoot('Shoot 1', 'music');
+} else {
+  renderAll();
+}
+renderFolderChips();
+</script>
+</body>
+</html>
